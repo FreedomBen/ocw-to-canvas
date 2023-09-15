@@ -1,6 +1,9 @@
 require_relative 'learning_resource_type'
 
 class Video
+  attr_accessor :uuid
+  attr_reader :hash, :data_json, :filename, :course_id, :title, :description, :file_relative, :learning_resource_types, :resource_type, :file_type, :youtube_key, :captions_file, :transcript_file, :thumbnail_file, :archive_url
+
   def initialize(hash)
     # make sure we have an image.  if not raise an error
     unless hash['data_json']['resource_type'] == 'Image'
