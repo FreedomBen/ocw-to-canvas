@@ -16,6 +16,14 @@ require_relative 'lib/image'
 OCW_CONTENT_MIRROR_DIR = '/seconddrive/ocw-content-offline-live-production'
 STATE_FILES_DIR = '/seconddrive/ocw-content-offline-live-production-state-files'
 
+def save_courses_to_file(courses, filename)
+  File.write(filename, Course.courses_to_json(courses))
+end
+
+def restore_courses_from_file(filename)
+  JSON.parse(File.read(filename)).map { |json| Course.from_json(json) }
+end
+
 def data_item_to_video(data_item)
   OpenStruct.new(
     filename: data_item['filename'],
@@ -109,7 +117,6 @@ def main(args)
   # count = 0
   # data_json_files.each do |data_json_file|
   #   count += 1 unless data_json_file['uuid']
-  #   #require 'byebug'; debugger unless data_json_file['uuid']
   #   #raise "Missing UUID for #{data_json_file['filename']}" unless data_json_file['uuid']
   # end
   # if count != data_json_files.count
@@ -141,10 +148,10 @@ def main(args)
   other_djs = data_json_files.select { |data_item| data_item['data_json']['resource_type'] == 'Other' }
   video_djs = data_json_files.select { |data_item| data_item['data_json']['resource_type'] == 'Video' }
 
-  img_obj = img_djs.map { |data_item| Image.new(data_item) }
-  doc_obj = doc_djs.map { |data_item| Document.new(data_item) }
-  other_obj = img_djs.map { |data_item| Other.new(data_item) }
-  video_obj = img_djs.map { |data_item| Video.new(data_item) }
+  img_obj = img_djs.map { |data_item| Image.from_orig_json(data_item) }
+  doc_obj = doc_djs.map { |data_item| Document.from_orig_json(data_item) }
+  other_obj = other_djs.map { |data_item| Other.from_orig_json(data_item) }
+  video_obj = video_djs.map { |data_item| Video.from_orig_json(data_item) }
 
   items = img_obj + doc_obj + other_obj + video_obj
 

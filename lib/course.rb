@@ -440,6 +440,41 @@ class Course
 
     @content_items << item
   end
+
+  def to_h
+    {
+      'course_id' => @course_id,
+      'course_title' => @course_title,
+      'course_description' => @course_description,
+      'site_uid' => @site_uid,
+      'legacy_uid' => @legacy_uid,
+      'instructors' => @instructors.map{|i| i.to_h},
+      'learning_resource_types' => @learning_resource_types,
+      'primary_course_number' => @primary_course_number,
+      'extra_course_numbers' => @extra_course_numbers,
+      'term' => @term,
+      'year' => @year,
+      'image_src' => @image_src,
+      'course_image_metadata' => @course_image_metadata.to_h,
+      'levels' => @levels,
+      'department_numbers' => @department_numbers,
+      'topics' => @topics,
+      'content_items' => @content_items.map{|i| i.to_h}
+    }
+  end
+
+  def to_json
+    to_h.to_json
+  end
+
+  def self.from_json(json_hash)
+    require 'byebug'; debugger
+    Course.new(json_hash['course_id'], json_hash['content_map_hash'], json_hash)
+  end
+
+  def self.courses_to_json(courses)
+    courses.map{|c| c.to_h}.to_json
+  end
 end
 
 class Instructor
@@ -451,6 +486,24 @@ class Instructor
     @middle_initial = instructor_hash['middle_initial']
     @salutation = instructor_hash['salutation']
     @title = instructor_hash['title']
+  end
+
+  def to_h
+    {
+      'first_name' => @first_name,
+      'last_name' => @last_name,
+      'middle_initial' => @middle_initial,
+      'salutation' => @salutation,
+      'title' => @title
+    }
+  end
+
+  def to_json
+    to_h.to_json
+  end
+
+  def self.from_json(json_hash)
+    Instructor.new(json_hash)
   end
 end
 
@@ -472,6 +525,32 @@ class CourseImageMetadata
     @title = hash['title']
     @uid = hash['uid']
   end
+
+  def to_h
+    {
+      'content_type' => @content_type,
+      'description' => @description,
+      'draft' => @draft,
+      'file' => @file,
+      'file_type' => @file_type,
+      'image_metadata' => @image_metadata.to_h,
+      'iscjklanguage' => @iscjklanguage,
+      'learning_resource_types' => @learning_resource_types,
+      'license' => @license,
+      'ocw_type' => @ocw_type,
+      'resourcetype' => @resourcetype,
+      'title' => @title,
+      'uid' => @uid
+    }
+  end
+
+  def to_json
+    to_h.to_json
+  end
+
+  def self.from_json(json_hash)
+    CourseImageMetadata.new(json_hash)
+  end
 end
 
 class ImageMetadata
@@ -481,5 +560,21 @@ class ImageMetadata
     @caption = hash['caption']
     @credit = hash['credit']
     @image_alt = hash['image_alt']
+  end
+
+  def to_h
+    {
+      'caption' => @caption,
+      'credit' => @credit,
+      'image_alt' => @image_alt
+    }
+  end
+
+  def to_json
+    to_h.to_json
+  end
+
+  def self.from_json(json_hash)
+    ImageMetadata.new(json_hash)
   end
 end
