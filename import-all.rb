@@ -78,8 +78,10 @@ def main(args)
   content_map_uuid_to_file =
     content_maps.inject({}) do |acc, content_map|
       content_map['content_map'].each do |uuid, filename|
-        acc[uuid] = filename
-        acc[filename] = uuid
+        course_id = content_map['course_id']
+        acc[course_id] ||= {}
+        acc[course_id][uuid] = filename
+        acc[course_id][filename] = uuid
       end
       acc
     end
@@ -97,25 +99,37 @@ def main(args)
       {
         'filename' => data_json_filenames[i],
         'course_id' => course_id,
-        'uuid' => content_map_uuid_to_file[uuid_filename],
+        'uuid' => content_map_uuid_to_file[course_id][uuid_filename],
         'data_json' => data_json
       }
     end
 
-  # QA check that the data_json files filename matches the filename for that UUID in the content_map
-  temp_thing = []
-  data_json_files.each do |data_json_file|
-    break unless content_map_uuid_to_file
-    break unless data_json_file['uuid']
-    break unless content_map_uuid_to_file[data_json_file['uuid']]
+  # TODO: about 5% of them are missing.  Investigate if this is a problem and why it's happening
+  # # Ensure that all items have a UUID
+  # count = 0
+  # data_json_files.each do |data_json_file|
+  #   count += 1 unless data_json_file['uuid']
+  #   #require 'byebug'; debugger unless data_json_file['uuid']
+  #   #raise "Missing UUID for #{data_json_file['filename']}" unless data_json_file['uuid']
+  # end
+  # if count != data_json_files.count
+  #   raise "Missing UUID for #{count} of #{data_json_files.count} files (#{count.to_f / data_json_files.count * 100.0}%)"
+  # end
 
-    cmutf = content_map_uuid_to_file[data_json_file['uuid']]
-    #if data_json_file['filename'] && data_json_file['filename'].end_with?(cmutf)
-    if data_json_file['filename']&.end_with?(cmutf)
-      temp_thing << data_json_file['filename']
-      #raise "Filename mismatch for UUID #{data_json_file['uuid']}: #{data_json_file['filename']} vs #{cmutf}"
-    end
-  end
+  # # QA check that the data_json files filename matches the filename for that UUID in the content_map
+  # temp_thing = []
+  # data_json_files.each do |data_json_file|
+  #   break unless content_map_uuid_to_file
+  #   break unless data_json_file['uuid']
+  #   break unless content_map_uuid_to_file[data_json_file['uuid']]
+
+  #   cmutf = content_map_uuid_to_file[data_json_file['uuid']]
+  #   #if data_json_file['filename'] && data_json_file['filename'].end_with?(cmutf)
+  #   if data_json_file['filename']&.end_with?(cmutf)
+  #     temp_thing << data_json_file['filename']
+  #     #raise "Filename mismatch for UUID #{data_json_file['uuid']}: #{data_json_file['filename']} vs #{cmutf}"
+  #   end
+  # end
 
   #data_json_resource_types =
   #  data_json_files
@@ -146,12 +160,27 @@ def main(args)
     Course.new(content_map['course_id'], content_map['content_map'], content_map['data_json'])
   end
 
+  # Build a hash of course_id => course object for fast lookups
+  course_hash = courses.inject({}) { |acc, course| acc[course.course_id] = course; acc }
+
   # Go through each course and populate them with their resources using UUID
-  courses.each do |course|
-    items.each do |item|
-      course.add_item(item)
+  items.each do |item|
+    # Ensure that every item has a course and that the course exists
+    raise "Item #{item.title} has no course!" unless item.course_id
+    raise "Course #{item.course_id} does not exist!" unless course_hash[item.course_id]
+
+    # Ensure that the UUID for the item exists in the content_map for the course
+    # Allow if the uuid is nil, since some items don't have UUIDs, but after investigation
+    # if the missing UUIDs are a problem then we might want to remove this
+    unless item.title == course_hash[item.course_id].content_map_hash[item.uuid]['title']
+      raise "Course content map doesn't match the item's other info"
     end
+
+    # Add item to the course
+    course_hash[item.course_id].add_item(item)
   end
+
+
 
   #
   # At this point we have the list of courses built!
