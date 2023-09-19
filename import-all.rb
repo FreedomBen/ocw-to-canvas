@@ -172,20 +172,18 @@ def main(args)
     # Ensure that the UUID for the item exists in the content_map for the course
     # Allow if the uuid is nil, since some items don't have UUIDs, but after investigation
     # if the missing UUIDs are a problem then we might want to remove this
-    unless item.title == course_hash[item.course_id].content_map_hash[item.uuid]['title']
-      raise "Course content map doesn't match the item's other info"
+    if item.uuid
+      unless item.title == course_hash[item.course_id].content_map_hash[item.uuid]['title']
+        raise "Course content map doesn't match the item's other info"
+      end
     end
 
     # Add item to the course
     course_hash[item.course_id].add_item(item)
   end
 
-
-
   #
   # At this point we have the list of courses built!
-  # - We do have some filename collisions that make multiple courses fail when checking the filenames and UUIDs.
-  # - Need to figure out how to namespace the UUIDs/filenames
   #
 
   # previous impl for video extraction
