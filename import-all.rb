@@ -62,10 +62,13 @@ end
 def main(args)
   #FileUtils.mkdir_p(STATE_FILES_DIR)
 
+  #cs = restore_courses_from_file('/home/ben/courses.json')
+  #require 'byebug'; debugger
+
   Dir.chdir('/seconddrive/ocw-content-offline-live-production')
 
-  content_maps_filenames = `find . -iname 'content_map.json'`.split("\n")
-  #content_maps_filenames = `find /seconddrive/ocw-content-offline-live-production/courses/9-00sc-introduction-to-psychology-fall-2011 -iname 'content_map.json'`.split("\n")
+  #content_maps_filenames = `find . -iname 'content_map.json'`.split("\n")
+  content_maps_filenames = `find /seconddrive/ocw-content-offline-live-production/courses/9-00sc-introduction-to-psychology-fall-2011 -iname 'content_map.json'`.split("\n")
 
   content_maps =
     content_maps_filenames
@@ -94,8 +97,8 @@ def main(args)
       acc
     end
 
-  data_json_filenames = `find . -iname 'data.json'`.split("\n")
-  #data_json_filenames = `find /seconddrive/ocw-content-offline-live-production/courses/9-00sc-introduction-to-psychology-fall-2011 -iname 'data.json'`.split("\n")
+  #data_json_filenames = `find . -iname 'data.json'`.split("\n")
+  data_json_filenames = `find /seconddrive/ocw-content-offline-live-production/courses/9-00sc-introduction-to-psychology-fall-2011 -iname 'data.json'`.split("\n")
   data_json_files =
     data_json_filenames
     .map { |filename| File.read(filename) }
@@ -189,17 +192,24 @@ def main(args)
     course_hash[item.course_id].add_item(item)
   end
 
+  # Verify that each course has at least one item
+  courses.each do |course|
+    raise "Course #{course.course_id} has no items!" unless course.content_items.count > 0
+  end
+
   #
   # At this point we have the list of courses built!
   #
+
+  save_courses_to_file(courses, '/home/ben/courses.json')
+  require 'byebug'; debugger
+  
 
   # previous impl for video extraction
   #data_json_video_files =
   #  data_json_files
   #  .select { |data_item| data_item['data_json']['resource_type'] == 'Video' && !data_item['data_json']['captions_file'].nil? }
   #  .reject { |data_item| data_item['data_json']['archive_url'].nil? || data_item['data_json']['archive_url'].empty? }
-
-  #require 'byebug'; debugger
 end
 
 main(ARGV)

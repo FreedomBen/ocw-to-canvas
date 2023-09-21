@@ -74,4 +74,8 @@ class LearningResourceType
   def self.get_all(resource_types)
     resource_types.map { |rt| get(rt) }
   end
+
+  def self.valid?(resource_type)
+    !!TYPES[resource_type]
+  end
 end

@@ -1,10 +1,11 @@
 require_relative 'learning_resource_type'
 
-class Video
+class Video < Syncable
   attr_accessor :uuid
   attr_reader :orig_hash, :data_json, :filename, :course_id, :title, :description, :file_relative, :learning_resource_types, :resource_type, :file_type, :youtube_key, :captions_file, :transcript_file, :thumbnail_file, :archive_url
 
   def initialize(hash)
+    super()
     @orig_hash = hash['orig_hash']
     @data_json = hash['data_json']
     @filename = hash['filename']
@@ -12,7 +13,8 @@ class Video
     @title = hash['title']
     @description = hash['description']
     @file_relative = hash['file']
-    @learning_resource_types = LearningResourceType.get_all(hash['learning_resource_types'])
+    #@learning_resource_types = LearningResourceType.get_all(hash['learning_resource_types'])
+    @learning_resource_types = hash['learning_resource_types']
     @resource_type = hash['resource_type']
     @file_type = hash['file_type']
     @youtube_key = hash['youtube_key']
@@ -20,6 +22,10 @@ class Video
     @transcript_file = hash['transcript_file']
     @thumbnail_file = hash['thumbnail_file']
     @archive_url = hash['archive_url']
+
+    unless @learning_resource_types.all? { |lrt| LearningResourceType.valid?(lrt) }
+      raise "Invalid learning resource type: '#{@learning_resource_types}'"
+    end
   end
 
   def self.from_orig_json(hash)

@@ -1,7 +1,7 @@
-class Course
+class Course < Syncable
   attr_reader :content_map_hash
   attr_reader :content_items
-  attr_reader :course_id, :course_title, :course_description, :site_uid, :legacy_uid, :instructors, :department_numbers, :learning_resource_types, :topics, :primary_course_number, :extra_course_numbers, :term, :year, :level, :image_src, :course_image_metadata
+  attr_reader :course_id, :course_title, :course_description, :site_uid, :legacy_uid, :instructors, :department_numbers, :learning_resource_types, :topics, :primary_course_number, :extra_course_numbers, :term, :year, :levels, :image_src, :course_image_metadata
 
   LEVELS = {
     'Non Credit' => 0,
@@ -388,9 +388,14 @@ class Course
   }
 
   def initialize(id, content_map_hash, data_json_hash)
+    super()
     @course_id = id
     @content_map_hash = content_map_hash
-    @content_items = []
+    @content_items = if data_json_hash['content_items']
+                       data_json_hash['content_items'].map{ |c| add_json_item(c) }
+                     else
+                       []
+                     end
 
     # These properties come from the top-level data.json file that is in the course directory
     @course_title = data_json_hash['course_title']
@@ -406,29 +411,43 @@ class Course
     @image_src = data_json_hash['image_src']
     @course_image_metadata = CourseImageMetadata.new(data_json_hash['course_image_metadata'])
 
-    @levels = data_json_hash['level']
+    @levels = data_json_hash['level'] || data_json_hash['levels']
     @department_numbers = data_json_hash['department_numbers']
     @topics = data_json_hash['topics'].flatten
 
     # Verify the level is valid
-    data_json_hash['level'].flatten.each do |level|
+    @levels.each do |level|
       unless LEVELS.include?(level)
         raise "Course had invalid level: #{level}"
       end
     end
 
     # Verify the department numbers are valid
-    data_json_hash['department_numbers'].flatten.each do |department_number|
+    @department_numbers.each do |department_number|
       unless DEPARTMENT_NUMBERS.include?(department_number)
         raise "Course had invalid department number: #{department_number}"
       end
     end
 
     # Verify the topics are valid
-    data_json_hash['topics'].flatten.each do |topic|
+    @topics.each do |topic|
       unless TOPICS.include?(topic)
         raise "Course had invalid topic: #{topic}"
       end
+    end
+  end
+
+  def add_json_item(item)
+    if item['resource_type'] == 'Image'
+      Image.from_json(item)
+    elsif item['resource_type'] == 'Document'
+      Document.from_json(item)
+    elsif item['resource_type'] == 'Other'
+      Other.from_json(item)
+    elsif item['resource_type'] == 'Video'
+      Video.from_json(item)
+    else
+      raise "Unknown resource type: #{item['resource_type']}"
     end
   end
 
@@ -439,6 +458,14 @@ class Course
     end
 
     @content_items << item
+  end
+
+  def sync_with_canvas
+    # If we already have a Canvas ID then that means we need to update anything that has changed
+    # If we don't have a Canvas ID then we need to create the course
+    if @canvas_id
+
+    end
   end
 
   def to_h
@@ -468,7 +495,6 @@ class Course
   end
 
   def self.from_json(json_hash)
-    require 'byebug'; debugger
     Course.new(json_hash['course_id'], json_hash['content_map_hash'], json_hash)
   end
 
